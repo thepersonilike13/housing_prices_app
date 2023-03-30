@@ -20,8 +20,8 @@ def _max_width_(prcnt_width:int = 70):
     )
 _max_width_(70)
 st.title("California Housing Prices Prediction")
-st.title("")
-st.title("")
+
+st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): matheuscamposmt")
 
 
 data = pd.read_csv('housing.csv')
