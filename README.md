@@ -1,4 +1,4 @@
-# **California Housing Prices Prediction App
+# **California Housing Prices Prediction App**
 ### Web App: https://housing-prices-prediction.streamlit.app/
 
 ## 🔍 Sobre o projeto
