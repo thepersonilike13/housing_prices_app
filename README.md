@@ -4,12 +4,9 @@
 ## 🔍 Sobre o projeto
  
 Neste projeto, vamos utilizar técnicas de regressão linear com a biblioteca **scikit-learn** do **Python** para prever os preços de casas na Califórnia. 
-O objetivo é entender quais características de uma casa (como número de quartos, área construída, localização etc.) influenciam o seu valor de mercado.
+O objetivo é entender quais características de uma casa (como número de quartos, área construída, localização etc.) influenciam o seu valor de mercado e em seguida, utilizar a **regressão linear** para modelar a relação entre as características da casa e o seu preço de mercado. Para avaliar a qualidade do modelo, vamos utilizar métricas como **R²** e **RMSE**.
 
-Em seguida, vamos utilizar a **regressão linear** para modelar a relação entre as características da casa e o seu preço de mercado. Para avaliar a qualidade do modelo, vamos utilizar métricas como **R²** e **RMSE**.
-
-Por fim, vamos analisar os resultados e entender quais características têm mais influência no preço de mercado das casas na Califórnia. 
-Isso pode ser útil para profissionais do mercado imobiliário, investidores e até mesmo para pessoas que estão em busca de uma casa para comprar.
+Por fim, foi criado um aplicativo web, utilizando **Streamlit**, em que é possível prever o valor de um imóvel de acordo com dados fornecidos pelo usuário. Isso pode ser útil para profissionais do mercado imobiliário, investidores e até mesmo para pessoas que estão em busca de uma casa para comprar.
 
 ## Descrição dos dados
 
