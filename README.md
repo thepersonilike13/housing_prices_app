@@ -1,7 +1,7 @@
-# **California Housing Prices Prediction App**
+# **California Housing Prices Prediction App
 ### Web App: https://housing-prices-prediction.streamlit.app/
 
-## Sobre o projeto
+## 🔍 Sobre o projeto
  
 Neste projeto, vamos utilizar técnicas de regressão linear com a biblioteca **scikit-learn** do **Python** para prever os preços de casas na Califórnia. 
 O objetivo é entender quais características de uma casa (como número de quartos, área construída, localização etc.) influenciam o seu valor de mercado.
