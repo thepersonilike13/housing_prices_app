@@ -1,4 +1,4 @@
-# **California Housing Prices Prediction App**
+**<h1 align='center'> California Housing Prices Prediction App </h1>**
 ### Web App: https://housing-prices-prediction.streamlit.app/
 
 ## 🔍 Sobre o projeto
@@ -29,4 +29,4 @@ O *dataset* possui as seguintes variáveis:
 3. Análise Exploratória
 4. *Feature Engineering*
 5. Modelagem
-6. Deploy do app
+6. *Deploy*
