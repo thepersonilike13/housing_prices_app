@@ -3,7 +3,7 @@ st.set_page_config(page_title="Housing Prices Prediction", page_icon=":house:")
 import pandas as pd
 import numpy as np
 import pickle
-from combiner import CombinedAttributesAdder
+from utils.combiner import CombinedAttributesAdder
 import folium
 from geopy.geocoders import Nominatim, GeoNames
 from streamlit_folium import st_folium
@@ -24,7 +24,7 @@ st.title("California Housing Prices Prediction")
 st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): matheuscamposmt")
 
 
-data = pd.read_csv('housing.csv')
+data = pd.read_csv('../data/housing.csv')
 max_values = data.select_dtypes(include=np.number).max()
 min_values = data.select_dtypes(include=np.number).min()
 
@@ -32,7 +32,7 @@ min_values = data.select_dtypes(include=np.number).min()
 def load_model(filepath: str):
     return pickle.load(open(filepath, 'rb'))
 
-loaded_model = load_model('reg.sav')
+loaded_model = load_model('../model/linear_reg_model.pkl')
 
 def get_location(address: str, geolocator):
     return geolocator.geocode(address, addressdetails=True)
@@ -57,7 +57,7 @@ def create_map():
 
 @st.cache_resource
 def initialize_nominatim():
-    return Nominatim(user_agent="app")
+    return Nominatim(user_agent="geolocator_resource")
 
 if 'markers' not in st.session_state:
     st.session_state['markers'] = []
@@ -83,11 +83,7 @@ with col1:
     subcol1, subcol2 = st.columns(2)
 
     with subcol1:
-        housing_median_age = st.number_input(
-            "Median Age (in years)",
-            min_value=int(min_values['housing_median_age']), 
-            max_value=int(max_values['housing_median_age']), 
-            step=1)
+        housing_median_age = np.nan
         total_rooms = st.number_input(
             "Total Rooms", 
             min_value=int(min_values['total_rooms']), 
