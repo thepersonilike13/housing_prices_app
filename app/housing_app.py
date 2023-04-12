@@ -8,7 +8,6 @@ import folium
 from geopy.geocoders import Nominatim, GeoNames
 from streamlit_folium import st_folium
 
-
 def _max_width_(prcnt_width:int = 70):
     max_width_str = f"max-width: {prcnt_width}%;"
     st.markdown(f""" 
@@ -18,31 +17,54 @@ def _max_width_(prcnt_width:int = 70):
                 """, 
                 unsafe_allow_html=True,
     )
+
 _max_width_(70)
 st.title("California Housing Prices Prediction")
+st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): @matheuscamposmt")
 
-st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): matheuscamposmt")
-
-
-data = pd.read_csv('../data/housing.csv')
-max_values = data.select_dtypes(include=np.number).max()
-min_values = data.select_dtypes(include=np.number).min()
-
+# functions
 @st.cache_resource
 def load_model(filepath: str):
     return pickle.load(open(filepath, 'rb'))
 
-loaded_model = load_model('../model/linear_reg_model.pkl')
+def initialize_session_states():
+    if 'markers' not in st.session_state:
+        st.session_state['markers'] = []
+    
+    if 'lines' not in st.session_state:
+        st.session_state['lines'] = []
+
+    if 'prediction' not in st.session_state:
+        st.session_state['prediction'] = None
+
+    if 'address' not in st.session_state:
+        st.session_state['address'] = None
+
+    if 'location' not in st.session_state:
+        st.session_state['location'] = None
+
 
 def get_location(address: str, geolocator):
     return geolocator.geocode(address, addressdetails=True)
 
-def create_marker(m: folium.Map, location, address=None):
+def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
     coords = [location.latitude, location.longitude]
-    marker = folium.Marker(location=coords, popup=address, icon=folium.Icon(color='red'))
+    marker = folium.Marker(
+        location=coords,  
+        icon=folium.Icon(color=icon_color),
+        **kwargs)
+
     return marker
 
-def clear_markers():
+def link_two_markers(m: folium.Map, marker1, marker2):
+    line = folium.PolyLine(locations=(marker1.location, marker2.location))
+    st.session_state['lines'].append(line)
+
+
+def clear_markers(m):
+    for marker in st.session_state['markers']:
+        m.remove(marker)
+
     st.session_state['markers'] = []
 
 def create_map():
@@ -59,24 +81,18 @@ def create_map():
 def initialize_nominatim():
     return Nominatim(user_agent="geolocator_resource")
 
-if 'markers' not in st.session_state:
-    st.session_state['markers'] = []
-
-if 'prediction' not in st.session_state:
-    st.session_state['prediction'] = None
-
-if 'address' not in st.session_state:
-    st.session_state['address'] = None
-
-if 'location' not in st.session_state:
-    st.session_state['location'] = None
-
+data = pd.read_csv('./data/housing.csv')
+max_values = data.select_dtypes(include=np.number).max()
+min_values = data.select_dtypes(include=np.number).min()
 
 map_ca = create_map()
 fg = folium.FeatureGroup(name="markers")
-
 geolocator = initialize_nominatim()
+loaded_model = load_model('./model/linear_reg_model.pkl')
 
+initialize_session_states()
+
+# layout and input data
 col1, col2 = st.columns([1, 2], gap='large')
 with col1:
     st.header("Enter the attributes of the housing.")
@@ -130,18 +146,27 @@ with col1:
             if state == 'California':
                 loc = np.array([location.longitude, location.latitude])
 
-                st.text(f"Longitude: {location.longitude:.2f} \t\t  \t\t Latitude: {location.latitude:.2f}")
+                combiner = loaded_model.named_steps['feat_eng'].named_steps['attr_combiner']
+
                 
-                marker = create_marker(map_ca, location, address=address)
+
+                print(combiner.add_nearest_cities)
+
+                marker = create_marker(map_ca, location,icon_color='blue', popup=location)
+                nearest_city_marker = create_marker(map_ca, location, icon_color='red', popup=location)
                 st.session_state['markers'].append(marker)
+                st.session_state['markers'].append(nearest_city_marker)
+
+                link_two_markers(map_ca, marker, nearest_city_marker)
 
             else:
-                st.warning("The location should be in California. Inputting a place that doesn't belong to the state of California will lead to incosistent results.")
+                st.warning(
+                    "The location should be in California. \
+                    Inputting a place that doesn't belong \
+                    to the state of California\ will lead to inconsistent results.")
         
         else:
             st.error("Address not found.")
-
-
 
     button = st.button("Predict", use_container_width=True)
 
@@ -164,18 +189,18 @@ with col1:
         st.session_state['prediction'] = prediction
     
     if st.session_state['prediction']:
-        st.metric(label="Median House Value", value=f"$ {st.session_state['prediction']:.2f}")
-
+        st.success(f"Median House Value: ${st.session_state['prediction']:.2f}")
 
 with col2:
-
     for marker in st.session_state["markers"]:
         fg.add_child(marker)
+    
+    for line in st.session_state["lines"]:
+        fg.add_child(line)
 
     # Add the map to st_data
     st_data = st_folium(map_ca, width=1200, feature_group_to_add=fg)
 
     clean_button = st.button("Clear markers")
-
     if clean_button:
         clear_markers()
