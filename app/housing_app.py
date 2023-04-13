@@ -52,7 +52,7 @@ def load_combiner():
 
 # cached resources
 geolocator = initialize_nominatim()
-loaded_model = load_model('model/linear_reg_model.pkl')
+loaded_model = load_model('app/model/linear_reg_model.pkl')
 combiner = load_combiner()
 
 def get_location(address: str):
@@ -102,7 +102,7 @@ _max_width_(70)
 st.title("California Housing Prices Prediction")
 st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): @matheuscamposmt")
 
-data = pd.read_csv('.../data/housing.csv')
+data = pd.read_csv('data/housing.csv')
 max_values = data.select_dtypes(include=np.number).max()
 min_values = data.select_dtypes(include=np.number).min()
 
