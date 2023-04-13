@@ -6,7 +6,7 @@ rooms_ix, bedrooms_ix, population_ix, households_ix = 3, 4, 5, 6
 class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
     def __init__(self, add_bedrooms_per_room = True): # no *args or **kargs 
         self.add_bedrooms_per_room = add_bedrooms_per_room
-        california_cities = pd.read_csv('utils/cal_cities_lat_long.csv')
+        california_cities = pd.read_csv('app/utils/cal_cities_lat_long.csv')
         geometry_cal = gpd.points_from_xy(california_cities['Longitude'], california_cities['Latitude'])
         self.points_cal = gpd.GeoDataFrame(california_cities, geometry=geometry_cal)
     
