@@ -65,8 +65,10 @@ def get_nearest_city(location):
     lon, lat = location.longitude, location.latitude
 
     data = pd.DataFrame(dict(lon=lon, lat=lat), index=[0])
-    nearest_city = transform_data(data)['nearest_city'].values.squeeze()
-    return nearest_city
+    transformed = transform_data(data)
+    nearest_city = transformed['nearest_city'].values.squeeze()
+    distance = transformed['distance_nearest_city']
+    return nearest_city, distance
 
 def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
     coords = [location.latitude, location.longitude]
@@ -77,8 +79,8 @@ def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
 
     return marker
 
-def link_two_markers(m: folium.Map, marker1, marker2):
-    line = folium.PolyLine(locations=(marker1.location, marker2.location))
+def link_two_markers(marker1, marker2, **kwargs):
+    line = folium.PolyLine(locations=(marker1.location, marker2.location), **kwargs)
     
     return line
 
@@ -168,14 +170,14 @@ with col1:
             if state == 'California':
                 
                 housing_marker = create_marker(map_ca, location, popup=location)
-                nearest_city = get_nearest_city(location)
+                nearest_city, distance = get_nearest_city(location)
 
                 st.session_state['address_output'] = f'Nearest City: {nearest_city}'
                 nearest_city_marker = create_marker(
                     map_ca, get_location(nearest_city), 
                     icon_color='green', popup=nearest_city)
                 
-                line_markers = link_two_markers(map_ca, housing_marker, nearest_city_marker)
+                line_markers = link_two_markers(housing_marker, nearest_city_marker, tooltip=f'Distance {distance}')
                 
                 st.session_state['markers'].append(housing_marker)
                 st.session_state['markers'].append(nearest_city_marker)
