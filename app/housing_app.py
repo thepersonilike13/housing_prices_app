@@ -7,6 +7,7 @@ from utils.combiner import CombinedAttributesAdder
 import folium
 from geopy.geocoders import Nominatim, GeoNames
 from streamlit_folium import st_folium
+from utils.combiner import CombinedAttributesAdder
 
 def _max_width_(prcnt_width:int = 70):
     max_width_str = f"max-width: {prcnt_width}%;"
@@ -17,15 +18,6 @@ def _max_width_(prcnt_width:int = 70):
                 """, 
                 unsafe_allow_html=True,
     )
-
-_max_width_(70)
-st.title("California Housing Prices Prediction")
-st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): @matheuscamposmt")
-
-# functions
-@st.cache_resource
-def load_model(filepath: str):
-    return pickle.load(open(filepath, 'rb'))
 
 def initialize_session_states():
     if 'markers' not in st.session_state:
@@ -40,12 +32,41 @@ def initialize_session_states():
     if 'address' not in st.session_state:
         st.session_state['address'] = None
 
+    if 'address_output' not in st.session_state:
+        st.session_state['address_output'] = ""
+
     if 'location' not in st.session_state:
         st.session_state['location'] = None
 
+@st.cache_resource
+def initialize_nominatim():
+    return Nominatim(user_agent="geolocator_resource")
 
-def get_location(address: str, geolocator):
+@st.cache_resource
+def load_model(filepath: str):
+    return pickle.load(open(filepath, 'rb'))
+
+@st.cache_resource
+def load_combiner():
+    return CombinedAttributesAdder()
+
+# cached resources
+geolocator = initialize_nominatim()
+loaded_model = load_model('../model/linear_reg_model.pkl')
+combiner = load_combiner()
+
+def get_location(address: str):
     return geolocator.geocode(address, addressdetails=True)
+
+def transform_data(data: pd.DataFrame):
+    return combiner.add_nearest_cities(data)
+
+def get_nearest_city(location):
+    lon, lat = location.longitude, location.latitude
+
+    data = pd.DataFrame(dict(lon=lon, lat=lat), index=[0])
+    nearest_city = transform_data(data)['nearest_city'].values.squeeze()
+    return nearest_city
 
 def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
     coords = [location.latitude, location.longitude]
@@ -58,14 +79,14 @@ def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
 
 def link_two_markers(m: folium.Map, marker1, marker2):
     line = folium.PolyLine(locations=(marker1.location, marker2.location))
-    st.session_state['lines'].append(line)
+    
+    return line
 
 
-def clear_markers(m):
-    for marker in st.session_state['markers']:
-        m.remove(marker)
-
+def clear_markers():
     st.session_state['markers'] = []
+    st.session_state['lines'] = []
+
 
 def create_map():
     # Define the boundaries of California
@@ -77,18 +98,16 @@ def create_map():
 
     return map_ca
 
-@st.cache_resource
-def initialize_nominatim():
-    return Nominatim(user_agent="geolocator_resource")
+_max_width_(70)
+st.title("California Housing Prices Prediction")
+st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): @matheuscamposmt")
 
-data = pd.read_csv('./data/housing.csv')
+data = pd.read_csv('../data/housing.csv')
 max_values = data.select_dtypes(include=np.number).max()
 min_values = data.select_dtypes(include=np.number).min()
 
 map_ca = create_map()
-fg = folium.FeatureGroup(name="markers")
-geolocator = initialize_nominatim()
-loaded_model = load_model('./model/linear_reg_model.pkl')
+fg = folium.FeatureGroup(name="objects")
 
 initialize_session_states()
 
@@ -133,31 +152,35 @@ with col1:
 
     address = st.text_input("Address")
     st.caption("Press enter to mark the address in the map.")
+    st.write(st.session_state['address_output'])
     
-    if address and address != st.session_state['address']:
+    
+    if address and (address != st.session_state['address'] or not st.session_state['markers']):
+
         st.session_state['address'] = address
 
-        location = get_location(address, geolocator)
+        location = get_location(address)
         st.session_state['location'] = location
 
         if location:
             state = location.raw['address']['state']
 
             if state == 'California':
-                loc = np.array([location.longitude, location.latitude])
-
-                combiner = loaded_model.named_steps['feat_eng'].named_steps['attr_combiner']
-
                 
+                housing_marker = create_marker(map_ca, location, popup=location)
+                nearest_city = get_nearest_city(location)
 
-                print(combiner.add_nearest_cities)
-
-                marker = create_marker(map_ca, location,icon_color='blue', popup=location)
-                nearest_city_marker = create_marker(map_ca, location, icon_color='red', popup=location)
-                st.session_state['markers'].append(marker)
+                st.session_state['address_output'] = f'Nearest City: {nearest_city}'
+                nearest_city_marker = create_marker(
+                    map_ca, get_location(nearest_city), 
+                    icon_color='green', popup=nearest_city)
+                
+                line_markers = link_two_markers(map_ca, housing_marker, nearest_city_marker)
+                
+                st.session_state['markers'].append(housing_marker)
                 st.session_state['markers'].append(nearest_city_marker)
+                st.session_state['lines'].append(line_markers)
 
-                link_two_markers(map_ca, marker, nearest_city_marker)
 
             else:
                 st.warning(
@@ -185,6 +208,7 @@ with col1:
         }
 
         input_df = pd.DataFrame([input_data])
+        
         prediction = loaded_model.predict(input_df).squeeze()
         st.session_state['prediction'] = prediction
     
@@ -194,13 +218,16 @@ with col1:
 with col2:
     for marker in st.session_state["markers"]:
         fg.add_child(marker)
-    
+
     for line in st.session_state["lines"]:
         fg.add_child(line)
+    
+
 
     # Add the map to st_data
     st_data = st_folium(map_ca, width=1200, feature_group_to_add=fg)
 
     clean_button = st.button("Clear markers")
     if clean_button:
+        map_ca = create_map()
         clear_markers()
