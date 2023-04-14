@@ -6,6 +6,7 @@ import pickle
 from utils.combiner import CombinedAttributesAdder
 import folium
 from geopy.geocoders import Nominatim, GeoNames
+import geopy.distance
 from streamlit_folium import st_folium
 from utils.combiner import CombinedAttributesAdder
 
@@ -19,7 +20,7 @@ def _max_width_(prcnt_width:int = 70):
                 unsafe_allow_html=True,
     )
 
-def initialize_session_states():
+def initialize_session_states():    
     if 'markers' not in st.session_state:
         st.session_state['markers'] = []
     
@@ -67,8 +68,7 @@ def get_nearest_city(location):
     data = pd.DataFrame(dict(lon=lon, lat=lat), index=[0])
     transformed = transform_data(data)
     nearest_city = transformed['nearest_city'].values.squeeze()
-    distance = transformed['distance_nearest_city']
-    return nearest_city, distance
+    return nearest_city
 
 def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
     coords = [location.latitude, location.longitude]
@@ -88,6 +88,7 @@ def link_two_markers(marker1, marker2, **kwargs):
 def clear_markers():
     st.session_state['markers'] = []
     st.session_state['lines'] = []
+    
 
 
 def create_map():
@@ -97,7 +98,6 @@ def create_map():
 
     # Create a map centered on California
     map_ca = folium.Map(location=[37.7749, -122.4194], zoom_start=6, min_lat=min_lat, min_lon=min_lon, max_lat=max_lat, max_lon=max_lon, no_wrap=True, max_bounds=True)
-
     return map_ca
 
 _max_width_(70)
@@ -109,8 +109,7 @@ max_values = data.select_dtypes(include=np.number).max()
 min_values = data.select_dtypes(include=np.number).min()
 
 map_ca = create_map()
-fg = folium.FeatureGroup(name="objects")
-
+fg = folium.FeatureGroup(name="objects", control=True)
 initialize_session_states()
 
 # layout and input data
@@ -122,29 +121,29 @@ with col1:
     with subcol1:
         housing_median_age = np.nan
         total_rooms = st.number_input(
-            "Total Rooms", 
+            "Total Rooms within a block", 
             min_value=int(min_values['total_rooms']), 
             max_value=int(max_values['total_rooms']), 
             step=5)
         total_bedrooms = st.number_input(
-            "Total Bedrooms", 
+            "Total Bedrooms within a block", 
             min_value=int(min_values['total_bedrooms']), 
             max_value=int(max_values['total_bedrooms']), 
             step=5)
         
         population = st.number_input(
-            "Population of the Locality", 
+            "Population for a block", 
             min_value=int(min_values['population']), 
             max_value=int(max_values['population']), step=5)
 
     with subcol2:
         households = st.number_input(
-            "Number of Households in the Locality", 
+            "Number of Households for a block", 
             min_value=int(min_values['households']), 
             max_value=int(max_values['households']), step=5)
         
         median_income = st.slider(
-            "Median Income of the Locality", 
+            "Median Income within a block (k US dollars)", 
             min_value=float(min_values['median_income']), 
             max_value=float(max_values['median_income']), step=0.5)
         
@@ -170,14 +169,19 @@ with col1:
             if state == 'California':
                 
                 housing_marker = create_marker(map_ca, location, popup=location)
-                nearest_city, distance = get_nearest_city(location)
+                nearest_city = get_nearest_city(location)
+                nearest_city_loc = get_location(nearest_city)
+                nearest_city_coords = (nearest_city_loc.latitude, nearest_city_loc.longitude)
+                address_coords = (location.latitude, location.longitude)
 
-                st.session_state['address_output'] = f'Nearest City: {nearest_city}'
+                distance_km = geopy.distance.distance(nearest_city_coords, address_coords).km
+
+                st.session_state['address_output'] = f'Nearest City: {nearest_city} | Distance {distance_km:.2f} km'
                 nearest_city_marker = create_marker(
-                    map_ca, get_location(nearest_city), 
+                    map_ca, nearest_city_loc, 
                     icon_color='green', popup=nearest_city)
                 
-                line_markers = link_two_markers(housing_marker, nearest_city_marker, tooltip=f'Distance {distance}')
+                line_markers = link_two_markers(housing_marker, nearest_city_marker, tooltip=f'Distance {distance_km:.2f} km')
                 
                 st.session_state['markers'].append(housing_marker)
                 st.session_state['markers'].append(nearest_city_marker)
@@ -196,34 +200,45 @@ with col1:
     button = st.button("Predict", use_container_width=True)
 
     if button:
-        location = st.session_state['location']
-        input_data = {
-        "lon": location.longitude,
-        "lat": location.latitude,
-        "housing_median_age": housing_median_age,
-        "total_rooms": total_rooms,
-        "total_bedrooms": total_bedrooms,
-        "population": population,
-        "households": households,
-        "median_income": median_income,
-        "ocean_proximity": ocean_proximity
-        }
 
-        input_df = pd.DataFrame([input_data])
+        if total_bedrooms > total_rooms:
+            st.error('Error: Total bedrooms cannot be bigger than total rooms.')
         
-        prediction = loaded_model.predict(input_df).squeeze()
-        st.session_state['prediction'] = prediction
+        else:
+            location = st.session_state['location']
+            input_data = {
+            "lon": location.longitude,
+            "lat": location.latitude,
+            "housing_median_age": housing_median_age,
+            "total_rooms": total_rooms,
+            "total_bedrooms": total_bedrooms,
+            "population": population,
+            "households": households,
+            "median_income": median_income,
+            "ocean_proximity": ocean_proximity
+            }
+
+            input_df = pd.DataFrame([input_data])
+            
+            prediction = loaded_model.predict(input_df).squeeze()
+            st.session_state['prediction'] = prediction
     
     if st.session_state['prediction']:
         st.success(f"Median House Value: ${st.session_state['prediction']:.2f}")
 
 with col2:
-    for marker in st.session_state["markers"]:
-        fg.add_child(marker)
 
-    for line in st.session_state["lines"]:
-        fg.add_child(line)
+    if not st.session_state['markers']:
+        fg = folium.FeatureGroup('objects')
+
+    else:
+        for marker in st.session_state["markers"]:
+            fg.add_child(marker)
+
+        for line in st.session_state["lines"]:
+            fg.add_child(line)
     
+
 
 
     # Add the map to st_data
@@ -231,5 +246,4 @@ with col2:
 
     clean_button = st.button("Clear markers")
     if clean_button:
-        map_ca = create_map()
         clear_markers()
