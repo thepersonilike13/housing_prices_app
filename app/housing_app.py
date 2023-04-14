@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 from utils.combiner import CombinedAttributesAdder
 import folium
-from geopy.geocoders import Nominatim, GeoNames
+from geopy.geocoders import Nominatim
 import geopy.distance
 from streamlit_folium import st_folium
 from utils.combiner import CombinedAttributesAdder
@@ -23,25 +23,22 @@ def _max_width_(prcnt_width:int = 70):
 def initialize_session_states():    
     if 'markers' not in st.session_state:
         st.session_state['markers'] = []
-    
     if 'lines' not in st.session_state:
         st.session_state['lines'] = []
-
+    if 'fg' not in st.session_state:
+        st.session_state['fg'] = None
     if 'prediction' not in st.session_state:
         st.session_state['prediction'] = None
-
     if 'address' not in st.session_state:
         st.session_state['address'] = None
-
     if 'address_output' not in st.session_state:
         st.session_state['address_output'] = ""
-
     if 'location' not in st.session_state:
         st.session_state['location'] = None
 
 @st.cache_resource
-def initialize_nominatim():
-    return Nominatim(user_agent="geolocator_resource")
+def initialize_nominatim(user_agent='housing_price_app'):
+    return Nominatim(user_agent=user_agent)
 
 @st.cache_resource
 def load_model(filepath: str):
@@ -79,16 +76,21 @@ def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
 
     return marker
 
+def get_markers_addresses():
+    return list(map(lambda marker: marker['address'], st.session_state['markers']))
+
+
 def link_two_markers(marker1, marker2, **kwargs):
     line = folium.PolyLine(locations=(marker1.location, marker2.location), **kwargs)
     
     return line
 
 
-def clear_markers():
+def clear_markers(fg):
     st.session_state['markers'] = []
     st.session_state['lines'] = []
-    
+
+    return folium.FeatureGroup('objects')
 
 
 def create_map():
@@ -109,8 +111,8 @@ max_values = data.select_dtypes(include=np.number).max()
 min_values = data.select_dtypes(include=np.number).min()
 
 map_ca = create_map()
-fg = folium.FeatureGroup(name="objects", control=True)
 initialize_session_states()
+st.session_state['fg'] =  folium.FeatureGroup(name="objects", control=True)
 
 # layout and input data
 col1, col2 = st.columns([1, 2], gap='large')
@@ -152,12 +154,11 @@ with col1:
         ('NEAR BAY', '<1H OCEAN', 'INLAND', 'NEAR OCEAN', 'ISLAND'))
 
     address = st.text_input("Address")
-    st.caption("Press enter to mark the address in the map.")
-    st.write(st.session_state['address_output'])
+    st.caption("Press the button below to mark the address in the map.")
+    import streamlit as st
+    locate_button = st.button("Locate")
     
-    
-    if address and (address != st.session_state['address'] or not st.session_state['markers']):
-
+    if address and locate_button and (not address in get_markers_addresses()):
         st.session_state['address'] = address
 
         location = get_location(address)
@@ -167,14 +168,15 @@ with col1:
             state = location.raw['address']['state']
 
             if state == 'California':
-                
+                housing_coords = (location.latitude, location.longitude)
                 housing_marker = create_marker(map_ca, location, popup=location)
+                
                 nearest_city = get_nearest_city(location)
                 nearest_city_loc = get_location(nearest_city)
                 nearest_city_coords = (nearest_city_loc.latitude, nearest_city_loc.longitude)
-                address_coords = (location.latitude, location.longitude)
 
-                distance_km = geopy.distance.distance(nearest_city_coords, address_coords).km
+
+                distance_km = geopy.distance.distance(nearest_city_coords, housing_coords).km
 
                 st.session_state['address_output'] = f'Nearest City: {nearest_city} | Distance {distance_km:.2f} km'
                 nearest_city_marker = create_marker(
@@ -183,20 +185,19 @@ with col1:
                 
                 line_markers = link_two_markers(housing_marker, nearest_city_marker, tooltip=f'Distance {distance_km:.2f} km')
                 
-                st.session_state['markers'].append(housing_marker)
-                st.session_state['markers'].append(nearest_city_marker)
+                st.session_state['markers'].append({'marker':housing_marker, 'address': address})
+                st.session_state['markers'].append({'marker':nearest_city_marker, 'address': "n_city_"+address})
                 st.session_state['lines'].append(line_markers)
 
 
             else:
                 st.warning(
                     "The location should be in California. \
-                    Inputting a place that doesn't belong \
-                    to the state of California\ will lead to inconsistent results.")
+                    Inputting a place that doesn't belong to the state of California will lead to inconsistent results.")
         
         else:
             st.error("Address not found.")
-
+    st.write(st.session_state['address_output'])
     button = st.button("Predict", use_container_width=True)
 
     if button:
@@ -227,23 +228,19 @@ with col1:
         st.success(f"Median House Value: ${st.session_state['prediction']:.2f}")
 
 with col2:
+    for marker_content in st.session_state["markers"]:
+        st.session_state['fg'].add_child(marker_content['marker'])
 
-    if not st.session_state['markers']:
-        fg = folium.FeatureGroup('objects')
-
-    else:
-        for marker in st.session_state["markers"]:
-            fg.add_child(marker)
-
-        for line in st.session_state["lines"]:
-            fg.add_child(line)
-    
+    for line in st.session_state["lines"]:
+        st.session_state['fg'].add_child(line)
 
 
-
-    # Add the map to st_data
-    st_data = st_folium(map_ca, width=1200, feature_group_to_add=fg)
 
     clean_button = st.button("Clear markers")
     if clean_button:
-        clear_markers()
+        st.session_state['fg'] = clear_markers(st.session_state['fg'])
+
+    st_data = st_folium(map_ca, width=1200, height=800, feature_group_to_add=st.session_state['fg'])
+
+    
+
