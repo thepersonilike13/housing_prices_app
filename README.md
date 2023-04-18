@@ -1,5 +1,5 @@
 **<h1 align='center'> California Housing Prices Prediction App </h1>**
-### Web App: https://housing-prices-prediction.streamlit.app/
+### Web App: https://housingprice.streamlit.app/
 
 ## 🔍 Sobre o projeto
  
