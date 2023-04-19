@@ -16,7 +16,7 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
         geometry_cal = gpd.points_from_xy(california_cities['Longitude'], california_cities['Latitude'])
         self.points_cal = gpd.GeoDataFrame(california_cities, geometry=geometry_cal)
         self.points_cal.set_crs(self.CRS, inplace=True)
-
+        self._feature_names_out = None
 
         # coastline
         self.coastline = gpd.read_file('data/coastline/US_Westcoast.shp')[['geometry']]
@@ -67,7 +67,9 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         data = self.dataframe_to_geo(X)
 
-        joined_data = self.add_nearest_cities(data)
+        joined_data = self.add_nearest_cities(data) #km
+
+        # performance drops a lot when distance to the ocean is added
         #joined_data = self.add_ocean_distance(joined_data)
 
         X = joined_data.drop(columns=['geometry','lon','lat','Latitude','Longitude'])
@@ -76,4 +78,9 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
             bedrooms_per_room=X.total_bedrooms / X.total_rooms if self.add_bedrooms_per_room else None
         )
 
+        self._feature_names_out = X.columns.to_list()
+
         return X
+    
+    def get_feature_names_out(self, input_feature = None):
+        return self._feature_names_out
