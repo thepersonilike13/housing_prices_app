@@ -3,13 +3,12 @@ st.set_page_config(page_title="Housing Prices Prediction", page_icon=":house:")
 import pandas as pd
 import numpy as np
 import pickle
-from utils.combiner import CombinedAttributesAdder
 import folium
 from geopy.geocoders import Nominatim
 import geopy.distance
 from streamlit_folium import st_folium
-from utils.combiner import CombinedAttributesAdder
-from utils.prediction_intervals import predict_with_interval
+from app.utils.combiner import CombinedAttributesAdder
+from app.utils.prediction_intervals import predict_with_interval
 
 def _max_width_(prcnt_width:int = 70):
     max_width_str = f"max-width: {prcnt_width}%;"
