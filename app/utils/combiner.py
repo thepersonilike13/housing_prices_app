@@ -67,12 +67,13 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         data = self.dataframe_to_geo(X)
 
-        joined_data = self.add_nearest_cities(data) #km
-
+        joined_data = self.add_nearest_cities(data).to_crs(self.DISTANCE_CRS)
+    
         # performance drops a lot when distance to the ocean is added
         #joined_data = self.add_ocean_distance(joined_data)
 
-        X = joined_data.drop(columns=['geometry','lon','lat','Latitude','Longitude'])
+
+        X = joined_data.drop(columns=['geometry','lat','lon','Latitude','Longitude','population'])
         X = X.assign(
             rooms_per_household=X.total_rooms / X.households,
             bedrooms_per_room=X.total_bedrooms / X.total_rooms if self.add_bedrooms_per_room else None

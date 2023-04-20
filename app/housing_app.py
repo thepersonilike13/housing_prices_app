@@ -9,6 +9,7 @@ from geopy.geocoders import Nominatim
 import geopy.distance
 from streamlit_folium import st_folium
 from utils.combiner import CombinedAttributesAdder
+from utils.prediction_intervals import predict_with_interval
 
 def _max_width_(prcnt_width:int = 70):
     max_width_str = f"max-width: {prcnt_width}%;"
@@ -221,7 +222,7 @@ with col1:
 
             input_df = pd.DataFrame([input_data])
             
-            prediction = loaded_model.predict(input_df).squeeze()
+            prediction = predict_with_interval(input_df, loaded_model, data)
             st.session_state['prediction'] = prediction
     
     if st.session_state['prediction']:
