@@ -37,7 +37,7 @@ def initialize_session_states():
         st.session_state['location'] = None
 
 @st.cache_resource
-def initialize_nominatim(user_agent='housing_price_app'):
+def initialize_nominatim(user_agent=f'housing_price_app_{np.random.randint(0,200)}'):
     return Nominatim(user_agent=user_agent)
 
 @st.cache_resource
@@ -54,7 +54,12 @@ loaded_model = load_model('model/linear_reg_model.pkl')
 combiner = load_combiner()
 
 def get_location(address: str):
-    return geolocator.geocode(address, addressdetails=True)
+    try:
+        loc = geolocator.geocode(address, addressdetails=True)
+    except geopy.exc.GeocoderUnavailable:
+        st.warning('Geolocator not available, try again.')
+
+    return loc
 
 def transform_data(data: pd.DataFrame):
     return combiner.add_nearest_cities(data)
