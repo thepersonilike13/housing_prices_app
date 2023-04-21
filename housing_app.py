@@ -220,7 +220,8 @@ with col1:
             input_df = pd.DataFrame([input_data])
 
             st.write(input_df)
-            prediction = predict_with_interval(input_df, loaded_model, data.rename(columns={"latitude": 'lat', "longitude":'lon'}))
+            #prediction = predict_with_interval(input_df, loaded_model, data.rename(columns={"latitude": 'lat', "longitude":'lon'}))
+            prediction = loaded_model.predict(input_df)
             st.session_state['prediction'] = prediction
             st.success("Done!")
 
