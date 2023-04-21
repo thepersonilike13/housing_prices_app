@@ -133,22 +133,23 @@ with col1:
             max_value=int(max_values['total_bedrooms']), 
             step=5)
         
+        ocean_proximity = st.selectbox(
+        'Ocean Proximity:',
+        ('NEAR BAY', '<1H OCEAN', 'INLAND', 'NEAR OCEAN', 'ISLAND'))
         population = np.nan
 
     with subcol2:
         households = st.number_input(
-            "Number of Households for a block", 
+            "Households for a block", 
             min_value=int(min_values['households']), 
             max_value=int(max_values['households']), step=5)
         
         median_income = st.slider(
-            "Median Income within a block (k US dollars)", 
+            "Median income within a block (k US dollars)", 
             min_value=float(min_values['median_income']), 
             max_value=float(max_values['median_income']), step=0.5)
         
-        ocean_proximity = st.selectbox(
-        'Ocean Proximity:',
-        ('NEAR BAY', '<1H OCEAN', 'INLAND', 'NEAR OCEAN', 'ISLAND'))
+
 
     address = st.text_input("Address")
     st.caption("Press the button below to mark the address in the map.")
@@ -169,9 +170,8 @@ with col1:
                 housing_marker = create_marker(map_ca, location, popup=location)
                 
                 nearest_city = get_nearest_city(location)
-                nearest_city_loc = get_location(nearest_city)
+                nearest_city_loc = get_location(nearest_city+", CA")
                 nearest_city_coords = (nearest_city_loc.latitude, nearest_city_loc.longitude)
-
 
                 distance_km = geopy.distance.distance(nearest_city_coords, housing_coords).km
 
@@ -221,12 +221,24 @@ with col1:
             
             prediction = predict_with_interval(input_df, loaded_model, data.rename(columns={"latitude": 'lat', "longitude":'lon'}))
             st.session_state['prediction'] = prediction
+            st.success("Done!")
+
     
     if st.session_state['prediction']:
         pred = st.session_state['prediction']
         std_error = pred['prediction_value'] - pred['lower']
-        st.success("Done!")
-        st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} +- $ {std_error:.2f}")
+        st.markdown(
+            """
+        <style>
+        [data-testid="stMetricValue"] {
+            font-size: 32px;
+            color: green;
+        }
+        </style>
+        """,
+            unsafe_allow_html=True,
+        )
+        st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} ± $ {std_error:.2f}")
 
 with col2:
     for marker_content in st.session_state["markers"]:
@@ -239,7 +251,7 @@ with col2:
 
     clean_button = st.button("Clear markers")
     if clean_button:
-        st.session_state['fg'] = clear_markers(st.session_state['fg'])
+        st.session_state['fg'] = clear_markers()
 
     st_data = st_folium(map_ca, width=1200, height=800, feature_group_to_add=st.session_state['fg'])
 

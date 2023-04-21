@@ -24,7 +24,6 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def dataframe_to_geo(data: pd.DataFrame):
-        print(data)
         geometry = gpd.points_from_xy(data['lon'], data['lat'])
         data = gpd.GeoDataFrame(data).set_geometry(geometry).set_crs(CombinedAttributesAdder.CRS)
 
