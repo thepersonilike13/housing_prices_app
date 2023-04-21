@@ -220,15 +220,14 @@ with col1:
             input_df = pd.DataFrame([input_data])
 
             st.write(input_df)
-            #prediction = predict_with_interval(input_df, loaded_model, data.rename(columns={"latitude": 'lat', "longitude":'lon'}))
-            prediction = loaded_model.predict(input_df)
+            prediction = predict_with_interval(input_df, loaded_model, data.rename(columns={"latitude": 'lat', "longitude":'lon'}))
             st.session_state['prediction'] = prediction
             st.success("Done!")
 
     
     if st.session_state['prediction']:
         pred = st.session_state['prediction']
-        #std_error = pred['prediction_value'] - pred['lower']
+        std_error = pred['prediction_value'] - pred['lower']
         st.markdown(
             """
         <style>
@@ -240,8 +239,7 @@ with col1:
         """,
             unsafe_allow_html=True,
         )
-        #st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} ± $ {std_error:.2f}")
-        st.write(pred)
+        st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} ± $ {std_error:.2f}")
 
 with col2:
     for marker_content in st.session_state["markers"]:
