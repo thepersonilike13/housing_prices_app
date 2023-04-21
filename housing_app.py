@@ -54,11 +54,7 @@ loaded_model = load_model('model/linear_reg_model.pkl')
 combiner = load_combiner()
 
 def get_location(address: str):
-    try:
-        loc = geolocator.geocode(address, addressdetails=True)
-    except geopy.exc.GeocoderUnavailable:
-        st.warning('Geolocator not available, try again.')
-
+    loc = geolocator.geocode(address, addressdetails=True)
     return loc
 
 def transform_data(data: pd.DataFrame):
