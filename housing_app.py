@@ -228,7 +228,7 @@ with col1:
     
     if st.session_state['prediction']:
         pred = st.session_state['prediction']
-        std_error = pred['prediction_value'] - pred['lower']
+        #std_error = pred['prediction_value'] - pred['lower']
         st.markdown(
             """
         <style>
@@ -240,7 +240,8 @@ with col1:
         """,
             unsafe_allow_html=True,
         )
-        st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} ± $ {std_error:.2f}")
+        #st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} ± $ {std_error:.2f}")
+        st.write(pred)
 
 with col2:
     for marker_content in st.session_state["markers"]:
