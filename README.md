@@ -3,24 +3,27 @@
 
 ## 🔍 Sobre o projeto
  
-Neste projeto, vamos utilizar técnicas de regressão linear com a biblioteca **scikit-learn** do **Python** para prever os preços de casas na Califórnia. 
-O objetivo é entender quais características de uma casa (como número de quartos, área construída, localização etc.) influenciam o seu valor de mercado e em seguida, utilizar a **regressão linear** para modelar a relação entre as características da casa e o seu preço de mercado. Para avaliar a qualidade do modelo, vamos utilizar métricas como **R²** e **RMSE**.
+Neste projeto, vamos utilizar técnicas de regressão linear com a biblioteca **scikit-learn** do **Python** para prever os preços de habitações na Califórnia. O objetivo é entender quais características de um imóvel residencial (como número de quartos, localização, renda da localidade etc.) influenciam o seu valor de mercado.
 
-Por fim, foi criado um aplicativo web, utilizando **Streamlit**, em que é possível prever o valor de um imóvel de acordo com dados fornecidos pelo usuário. Este projeto pode ser útil para auxiliar profissionais do mercado imobiliário, investidores e até mesmo para pessoas que estão em busca de uma casa para comprar.
+O conjunto de dados utilizado foi [retirado do Kaggle](https://www.kaggle.com/datasets/camnugent/california-housing-prices) e é referente ao **censo de 1990**. Utilizaremos técnicas de limpeza e pré-processamento dos dados para que eles estejam prontos para a análise.
+
+Em seguida, vamos utilizar a **regressão linear** para modelar a relação entre as características da casa e o seu preço de mercado. Para avaliar a qualidade do modelo, vamos utilizar métricas como **R²** e **RMSE**.
+
+Por fim, foi criado um aplicativo web, utilizando **Streamlit**, em que é possível prever o valor de um imóvel de acordo com dados fornecidos pelo usuário. Vamos analisar os resultados e entender a visão de negócio do projeto, podendo ser útil para auxiliar profissionais do mercado imobiliário, investidores e até mesmo para pessoas que estão em busca de uma casa para comprar.
 
 ## Descrição dos dados
 
 O *dataset* possui as seguintes variáveis:
 
-- **Longitude**: longitude de um determinado conjunto de casas.
-- **Latitude**: latitude de um determinado conjunto de casas.
-- **Housing median age**: idade mediana das casas.
-- **Total rooms**: total de quartos.
-- **Total bedrooms**: total de quartos para dormir.
-- **Population**: população da localidade.
-- **Households**: número total de famílias, grupos de pessoas residindo em uma unidades domiciliar, por um quarteirão.
-- **Median income**: renda mediana da localidade.
-- **Ocean proximity**: Proximidade com o oceano (menos de uma hora para chegar no oceano; terrestre; perto do oceano; perto de uma baía; em uma ilha).
+- **`longitude`**: longitude de um determinado conjunto de casas.
+- **`latitude`**: latitude de um determinado conjunto de casas.
+- **`housing_median_age`**: idade mediana das casas em um quarteirão.
+- **`total_rooms`**: total de quartos em um quarteirão de casas.
+- **`total_bedrooms`**: total de quartos para dormir em um quarteirão.
+- **`population`**: população da localidade em um quarteirão.
+- **`households`**: número total de famílias, grupos de pessoas residindo em uma unidades domiciliar, por um quarteirão.
+- **`median_income`**: renda mediana em um quarteirão.
+- **`ocean_proximity`**: Proximidade com o oceano (menos de uma hora para chegar no oceano; terrestre; perto do oceano; perto de uma baía; em uma ilha).
 
 ## Etapas do projeto
 
