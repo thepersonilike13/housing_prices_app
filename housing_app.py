@@ -8,7 +8,9 @@ from geopy.geocoders import Nominatim
 import geopy.distance
 from streamlit_folium import st_folium
 from utils.combiner import CombinedAttributesAdder
-from utils.prediction_intervals import predict_with_interval
+
+## -----------------------------------------------------------------------------------------##
+## Functions
 
 def _max_width_(prcnt_width:int = 70):
     max_width_str = f"max-width: {prcnt_width}%;"
@@ -20,7 +22,14 @@ def _max_width_(prcnt_width:int = 70):
                 unsafe_allow_html=True,
     )
 
-def initialize_session_states():    
+rand_addresses = ['1219 Carleton Street, Berkeley CA 94702','24147 Clinton Court, Hayward CA 94545',
+'560 Penstock Drive, Grass Valley CA 95945','1238 Roanwood Way, Concord CA 94521',
+'2807 Huxley Place, Fremont CA 94555','441 Merritt Avenue, Oakland CA 94610',
+'3377 Sandstone Court, Pleasanton CA 94588', '2443 Sierra Nevada Road, Mammoth Lakes CA 93546']
+def get_rand_addr(addresses):
+    return np.random.choice(addresses, replace=False)
+
+def initialize_session_states():
     if 'markers' not in st.session_state:
         st.session_state['markers'] = []
     if 'lines' not in st.session_state:
@@ -35,27 +44,42 @@ def initialize_session_states():
         st.session_state['address_output'] = ""
     if 'location' not in st.session_state:
         st.session_state['location'] = None
+    
+    if 'random_values' not in st.session_state:
+        random_rooms = np.random.randint(40, 600)
+        random_bedrooms = np.random.randint(30, random_rooms)
+        random_households = np.random.randint(0, 60) + random_bedrooms -  np.random.randint(0, 20)
+        random_addr = get_rand_addr(rand_addresses)
 
+        st.session_state['random_values'] = dict(
+            random_rooms = random_rooms,
+            random_bedrooms = random_bedrooms,
+            random_households = random_households,
+            random_address = random_addr
+        )
+
+# cached resources
 @st.cache_resource
 def initialize_nominatim(user_agent=f'housing_price_app_{np.random.randint(0,200)}'):
-    return Nominatim(user_agent=user_agent)
+    with st.spinner('Initializing geolocator...'):
+        return Nominatim(user_agent=user_agent)
 
 @st.cache_resource
 def load_model(filepath: str):
-    return pickle.load(open(filepath, 'rb'))
+    with st.spinner('Loading model...'):
+        return pickle.load(open(filepath, 'rb'))
 
 @st.cache_resource
 def load_combiner():
-    return CombinedAttributesAdder()
+    with st.spinner('Loading components..'):
+        return CombinedAttributesAdder()
 
-# cached resources
 geolocator = initialize_nominatim()
 loaded_model = load_model('model/linear_reg_model.pkl')
 combiner = load_combiner()
 
 def get_location(address: str):
-    loc = geolocator.geocode(address, addressdetails=True)
-    return loc
+    return geolocator.geocode(address, addressdetails=True)
 
 def transform_data(data: pd.DataFrame):
     return combiner.add_nearest_cities(data)
@@ -80,19 +104,14 @@ def create_marker(m: folium.Map, location, icon_color='red', **kwargs):
 def get_markers_addresses():
     return list(map(lambda marker: marker['address'], st.session_state['markers']))
 
-
 def link_two_markers(marker1, marker2, **kwargs):
-    line = folium.PolyLine(locations=(marker1.location, marker2.location), **kwargs)
-    
-    return line
-
+    return folium.PolyLine(locations=(marker1.location, marker2.location), **kwargs)
 
 def clear_markers():
     st.session_state['markers'] = []
     st.session_state['lines'] = []
 
     return folium.FeatureGroup('objects')
-
 
 def create_map():
     # Define the boundaries of California
@@ -103,9 +122,20 @@ def create_map():
     map_ca = folium.Map(location=[37.7749, -122.4194], zoom_start=6, min_lat=min_lat, min_lon=min_lon, max_lat=max_lat, max_lon=max_lon, no_wrap=True, max_bounds=True)
     return map_ca
 
+## -------------------------------------------------------------------------------------------------------##
+## Webpage
+
 _max_width_(70)
 st.title("California Housing Prices Prediction")
-st.markdown("[GitHub repository](https://github.com/matheuscamposmt/housing_prices_app): @matheuscamposmt")
+st.markdown("""
+##### A web application for predicting California Housing Prices.
+ 
+This app uses machine learning to predict the price of the house. 
+It loads a pre-trained linear regression model, which takes as input various features of the house, 
+such as the number of rooms, the number of bedrooms, the population of the house's neighborhood, and the distance to the nearest city. 
+The app preprocesses the input data by combining some of the features and adding new features, such as the distance to the nearest city.
+""")
+st.markdown("**:book: [GitHub repository](https://github.com/matheuscamposmt/housing_prices_app)** | :heart: **My profile:** [@matheuscamposmt](https://github.com/matheuscamposmt)")
 
 data = pd.read_csv('data/housing.csv')
 max_values = data.select_dtypes(include=np.number).max()
@@ -115,21 +145,25 @@ map_ca = create_map()
 initialize_session_states()
 st.session_state['fg'] =  folium.FeatureGroup(name="objects", control=True)
 
+rand_vals = st.session_state['random_values']
+
 # layout and input data
 col1, col2 = st.columns([1, 2], gap='large')
 with col1:
     st.header("Enter the attributes of the housing.")
     subcol1, subcol2 = st.columns(2)
-
     with subcol1:
         housing_median_age = np.nan
+
         total_rooms = st.number_input(
-            "Total Rooms within a block", 
-            min_value=int(min_values['total_rooms']), 
+            "Total Rooms within a block",
+            value=rand_vals['random_rooms'],
+            min_value=int(min_values['total_rooms']),
             max_value=int(max_values['total_rooms']), 
             step=5)
         total_bedrooms = st.number_input(
-            "Total Bedrooms within a block", 
+            "Total Bedrooms within a block",
+            value=rand_vals['random_bedrooms'], 
             min_value=int(min_values['total_bedrooms']), 
             max_value=int(max_values['total_bedrooms']), 
             step=5)
@@ -141,7 +175,8 @@ with col1:
 
     with subcol2:
         households = st.number_input(
-            "Households for a block", 
+            "Households for a block",
+            value=rand_vals['random_households'], 
             min_value=int(min_values['households']), 
             max_value=int(max_values['households']), step=5)
         
@@ -150,13 +185,17 @@ with col1:
             min_value=float(min_values['median_income']), 
             max_value=float(max_values['median_income']), step=0.5)
         
+        rand_addr_button = st.button("Random address", help='Generate a random address')
+        
+        if rand_addr_button:
+            rand_vals['random_address'] = get_rand_addr(rand_addresses)
+            st.session_state['address_output'] = ""
+        
+    address = st.text_input("Address", value=rand_vals['random_address'])
 
-
-    address = st.text_input("Address")
     st.caption("Press the button below to mark the address in the map.")
-    import streamlit as st
     locate_button = st.button("Locate")
-    
+
     if address and locate_button and (not address in get_markers_addresses()):
         st.session_state['address'] = address
 
@@ -194,13 +233,15 @@ with col1:
                     Inputting a place that doesn't belong to the state of California will lead to inconsistent results.")
         
         else:
-            st.error("Address not found.")
+            st.error("Address not found. Try again with another one.")
     st.write(st.session_state['address_output'])
     button = st.button("Predict", use_container_width=True)
 
+    
     if button:
-
-        if total_bedrooms > total_rooms:
+        if not address in get_markers_addresses():
+            st.error("You didn't locate the address. Press the 'Locate' button to pinpoint it on the map.")
+        elif total_bedrooms > total_rooms:
             st.error('Error: Total bedrooms cannot be bigger than total rooms.')
         
         else:
@@ -219,27 +260,25 @@ with col1:
             
             input_df = pd.DataFrame([input_data])
 
-            
-            prediction = predict_with_interval(input_df, loaded_model, data.rename(columns={"latitude": 'lat', "longitude":'lon'}))
+            prediction = loaded_model.predict(input_df).squeeze()
             st.session_state['prediction'] = prediction
             st.success("Done!")
 
     
     if st.session_state['prediction']:
         pred = st.session_state['prediction']
-        std_error = pred['prediction_value'] - pred['lower']
         st.markdown(
             """
         <style>
         [data-testid="stMetricValue"] {
-            font-size: 32px;
+            font-size: 34px;
             color: green;
         }
         </style>
         """,
             unsafe_allow_html=True,
         )
-        st.metric(label='Median House Value', value=f"$ {pred['prediction_value']:.2f} ± $ {std_error:.2f}")
+        st.metric(label='Median House Value', value=f"$ {pred:.2f}")
 
 with col2:
     for marker_content in st.session_state["markers"]:
@@ -247,7 +286,6 @@ with col2:
 
     for line in st.session_state["lines"]:
         st.session_state['fg'].add_child(line)
-
 
 
     clean_button = st.button("Clear markers")
