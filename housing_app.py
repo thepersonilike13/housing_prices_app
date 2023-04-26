@@ -181,7 +181,8 @@ with col1:
             max_value=int(max_values['households']), step=5)
         
         median_income = st.slider(
-            "Median income within a block (k US dollars)", 
+            "Median income within a block (in thousands of U.S. dollars)",
+            value=2,
             min_value=float(min_values['median_income']), 
             max_value=float(max_values['median_income']), step=0.5)
         
