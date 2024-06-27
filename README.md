@@ -1,4 +1,4 @@
-**<h1 align='center'> California Housing Prices Prediction App </h1>**
+**<h1 align='center'> Housing Prices Prediction App </h1>**
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/69912320/234723379-21eab3af-67c2-45e7-97d1-19613de4cfc0.gif" alt="animated" />
